@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Movie Rating Prediction with Python</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F6FA;
+    --surface: #FFFFFF;
+    --ink: #101B33;
+    --muted: #5B6478;
+    --line: #D9DEE8;
+    --base: #9AA3B5;
+    --rf: #3A4A78;
+    --gb: #E39B00;
+    --nv: #1F8F84;
+    --focus: #1F5FE0;
+    --head: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E1424; --surface: #161E33; --ink: #EAEFFA; --muted: #9BA6BF; --line: #2A344F;
+      --base: #6B7590; --rf: #8FA3E0; --gb: #F2B01E; --nv: #3FBFB0; --focus: #7FA8FF;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1424; --surface: #161E33; --ink: #EAEFFA; --muted: #9BA6BF; --line: #2A344F;
+    --base: #6B7590; --rf: #8FA3E0; --gb: #F2B01E; --nv: #3FBFB0; --focus: #7FA8FF;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 1.5rem; }
+  h1, h2 { font-family: var(--head); font-weight: 800; line-height: 1; margin: 0; letter-spacing: 0.005em; }
+  h1 { font-size: clamp(2.6rem, 7.5vw, 5rem); max-width: 16ch; }
+  h2 { font-size: clamp(1.9rem, 4.5vw, 2.7rem); margin-bottom: 0.9rem; }
+  p { margin: 0 0 1rem; max-width: 62ch; }
+  .muted { color: var(--muted); }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+
+  header.hero { padding: 4rem 0 2.5rem; }
+  .lede { font-size: 1.2rem; margin-top: 1.4rem; max-width: 56ch; }
+
+  /* ---------- Ruler ---------- */
+  .ruler-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.6rem 1.6rem 1.4rem;
+    margin-top: 2rem;
+  }
+  .ruler-card h2 { font-size: 1.5rem; margin-bottom: 0.3rem; }
+  .ruler-row { margin-top: 1.3rem; }
+  .ruler-row .name { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.4rem; }
+  .ruler-row .name span:last-child { font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .track { position: relative; height: 26px; background: color-mix(in srgb, var(--line) 55%, transparent); border-radius: 6px; }
+  .band { position: absolute; top: 0; bottom: 0; border-radius: 6px; transition: left .25s ease, width .25s ease; }
+  .band.gb { background: var(--gb); }
+  .band.base { background: var(--base); }
+  .actual { position: absolute; top: -6px; bottom: -6px; width: 3px; background: var(--ink); border-radius: 2px; transition: left .25s ease; }
+  .ticks { display: flex; justify-content: space-between; margin-top: 0.35rem; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ticks span { width: 0; display: flex; justify-content: center; }
+  .slider-row { margin-top: 1.4rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .slider-row label { font-weight: 600; font-size: 0.95rem; }
+  .slider-row output { font-family: var(--head); font-weight: 800; font-size: 1.6rem; min-width: 2.6rem; }
+  input[type=range] { flex: 1 1 200px; accent-color: var(--gb); height: 28px; }
+  .readout { margin: 1rem 0 0; font-size: 0.98rem; }
+  @media (prefers-reduced-motion: reduce) { .band, .actual { transition: none; } }
+
+  /* ---------- Sections ---------- */
+  section { padding: 3rem 0; border-top: 1px solid var(--line); }
+
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 1.2rem 0 0.4rem; }
+  th, td { text-align: right; padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; padding-left: 0; }
+  th { font-weight: 600; font-size: 0.9rem; color: var(--muted); }
+  tr.best td { font-weight: 600; }
+  tr.best td:first-child { box-shadow: inset 4px 0 0 var(--gb); padding-left: 0.9rem; }
+  .table-scroll { overflow-x: auto; }
+
+  .bars { margin-top: 1.6rem; display: grid; gap: 0.9rem; }
+  .bar-line { display: grid; grid-template-columns: minmax(150px, 230px) 1fr 3.4rem; gap: 0.8rem; align-items: center; font-size: 0.95rem; }
+  .bar-line .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .bar-track { height: 16px; background: color-mix(in srgb, var(--line) 55%, transparent); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  @media (max-width: 560px) {
+    .bar-line { grid-template-columns: 1fr 3.2rem; }
+    .bar-line .lab { grid-column: 1 / -1; }
+  }
+
+  dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.4rem 2rem; margin: 1.4rem 0 0; }
+  dl.facts dt { font-family: var(--head); font-weight: 800; font-size: 2.3rem; line-height: 1; }
+  dl.facts dd { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.95rem; }
+
+  ol.steps { padding-left: 1.3rem; margin: 1.2rem 0 0; max-width: 62ch; }
+  ol.steps li { margin-bottom: 0.9rem; padding-left: 0.3rem; }
+  ol.steps strong { font-weight: 600; }
+  ul.plain { padding-left: 1.2rem; max-width: 62ch; }
+  ul.plain li { margin-bottom: 0.7rem; }
+
+  footer { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+  footer p { margin-bottom: 0.4rem; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Guessing a movie's rating to within a point</h1>
+    <p class="lede">A regression model trained on 7,919 rated Indian movies. From the cast, director, year, genre and votes, it predicts a rating that lands 0.77 points from the real score on average.</p>
+
+    <div class="ruler-card">
+      <h2>What an average miss looks like</h2>
+      <p class="muted" style="margin:0">Pick an actual rating. The bars show how far each model's guess typically lands from it, on the 1&ndash;10 scale.</p>
+
+      <div class="ruler-row">
+        <div class="name"><span>Gradient Boosting</span><span>average miss 0.77</span></div>
+        <div class="track" aria-hidden="true"><div class="band gb" id="bandGb"></div><div class="actual" id="actualA"></div></div>
+      </div>
+      <div class="ruler-row">
+        <div class="name"><span>Baseline (always guesses the average, 5.84)</span><span>average miss 1.11</span></div>
+        <div class="track" aria-hidden="true"><div class="band base" id="bandBase"></div><div class="actual" id="actualB"></div></div>
+      </div>
+      <div class="ticks" aria-hidden="true" id="ticks"></div>
+
+      <div class="slider-row">
+        <label for="rating">Actual rating</label>
+        <input type="range" id="rating" min="1" max="10" step="0.1" value="7">
+        <output id="ratingOut" for="rating">7.0</output>
+      </div>
+      <p class="readout" id="readout" aria-live="polite"></p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="wrap">
+      <h2>Gradient Boosting was the most accurate</h2>
+      <p>Two models were compared against a baseline that ignores every feature and always guesses the average rating. Both learned real patterns, and Gradient Boosting made the smallest errors on movies it had never seen.</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Model</th><th>RMSE</th><th>MAE</th><th>R&sup2;</th></tr></thead>
+          <tbody>
+            <tr><td>Baseline (average rating)</td><td>1.365</td><td>1.107</td><td>&minus;0.002</td></tr>
+            <tr><td>Random Forest</td><td>1.048</td><td>0.793</td><td>0.409</td></tr>
+            <tr class="best"><td>Gradient Boosting</td><td>1.027</td><td>0.773</td><td>0.433</td></tr>
+            <tr><td>Gradient Boosting, without votes</td><td>1.121</td><td>0.863</td><td>0.324</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size:0.93rem;margin-top:0.6rem">MAE is the average miss in rating points, and lower is better. R&sup2; is the share of the variation in ratings the model explains, where 1 is perfect and 0 is no better than guessing the average.</p>
+
+      <div class="bars" role="img" aria-label="Average miss in rating points: baseline 1.107, Random Forest 0.793, Gradient Boosting 0.773, Gradient Boosting without votes 0.863">
+        <div class="bar-line"><span class="lab">Baseline</span><div class="bar-track"><div class="bar-fill" style="width:92.25%;background:var(--base)"></div></div><span class="val">1.11</span></div>
+        <div class="bar-line"><span class="lab">Random Forest</span><div class="bar-track"><div class="bar-fill" style="width:66.1%;background:var(--rf)"></div></div><span class="val">0.79</span></div>
+        <div class="bar-line"><span class="lab">Gradient Boosting</span><div class="bar-track"><div class="bar-fill" style="width:64.4%;background:var(--gb)"></div></div><span class="val">0.77</span></div>
+        <div class="bar-line"><span class="lab">Gradient Boosting, no votes</span><div class="bar-track"><div class="bar-fill" style="width:71.9%;background:var(--nv)"></div></div><span class="val">0.86</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>What drives a rating</h2>
+      <p>The cast's track record and the vote count matter most. Genre barely moves a prediction on its own. These are the Random Forest's ten most important features.</p>
+      <div class="bars" id="importance" role="img" aria-label="Feature importance from the Random Forest"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>The data</h2>
+      <dl class="facts">
+        <div><dt>15,509</dt><dd>movies in the file, of which 7,919 have a rating and were used</dd></div>
+        <div><dt>5.84</dt><dd>average rating, with scores from 1.1 to 10</dd></div>
+        <div><dt>6,335 / 1,584</dt><dd>movies used for training and for testing</dd></div>
+        <div><dt>28</dt><dd>features built from genre, people, year, duration and votes</dd></div>
+      </dl>
+      <p style="margin-top:1.6rem">Two patterns showed up before any modelling. Movies from the 1990s and 2000s averaged around 5.3, while older films sat closer to 6.5, so release year became a feature. Family, Musical and Drama scored highest by genre (about 6.1) and Action lowest (about 5.4), a small gap that explains why genre alone predicts poorly.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>How it was built</h2>
+      <ol class="steps">
+        <li><strong>Clean.</strong> Dropped movies with no rating, and turned text like "(2019)" and "109 min" into numbers.</li>
+        <li><strong>Build features.</strong> Genres became yes/no columns. Each director and actor became the average rating of their other movies, calculated on training data only so the test movies stayed unseen.</li>
+        <li><strong>Train.</strong> Split the movies 80/20, then trained a Random Forest and a Gradient Boosting model.</li>
+        <li><strong>Evaluate.</strong> Scored both on the held-out 20% and compared them with the always-guess-the-average baseline.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Limits worth knowing</h2>
+      <ul class="plain">
+        <li><strong>Votes only exist after release.</strong> The version without them, which is the realistic pre-release model, explains about a third of the variation (R&sup2; 0.32).</li>
+        <li><strong>Predictions cluster in the middle.</strong> Very low and very high ratings get pulled toward the average.</li>
+        <li><strong>Newcomers have little history,</strong> so scores for new directors and actors are less reliable.</li>
+        <li><strong>Plot, budget and marketing are missing,</strong> and adding them would likely improve accuracy, as would trying XGBoost or LightGBM.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Dataset: IMDb Movies India on Kaggle (adrianmcmahon/imdb-india-movies).</p>
+    <p>Built with Python, pandas and scikit-learn in Google Colab, as Task 2 of a data science internship.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var MAE_GB = 0.773, MAE_BASE = 1.107;
+  var pct = function (x) { return ((x - 1) / 9) * 100; };
+
+  // Ticks 1..10
+  var ticks = document.getElementById('ticks');
+  for (var i = 1; i <= 10; i++) { var s = document.createElement('span'); s.textContent = i; ticks.appendChild(s); }
+
+  var slider = document.getElementById('rating');
+  var out = document.getElementById('ratingOut');
+  var bandGb = document.getElementById('bandGb'), bandBase = document.getElementById('bandBase');
+  var actA = document.getElementById('actualA'), actB = document.getElementById('actualB');
+  var readout = document.getElementById('readout');
+
+  function place(band, r, mae) {
+    var lo = Math.max(1, r - mae), hi = Math.min(10, r + mae);
+    band.style.left = pct(lo) + '%';
+    band.style.width = (pct(hi) - pct(lo)) + '%';
+    return [lo, hi];
+  }
+  function update() {
+    var r = parseFloat(slider.value);
+    out.textContent = r.toFixed(1);
+    var g = place(bandGb, r, MAE_GB), b = place(bandBase, r, MAE_BASE);
+    actA.style.left = 'calc(' + pct(r) + '% - 1.5px)';
+    actB.style.left = 'calc(' + pct(r) + '% - 1.5px)';
+    readout.textContent = 'For a movie rated ' + r.toFixed(1) + ', an average miss puts Gradient Boosting between ' +
+      g[0].toFixed(1) + ' and ' + g[1].toFixed(1) + ', and the baseline between ' + b[0].toFixed(1) + ' and ' + b[1].toFixed(1) + '.';
+  }
+  slider.addEventListener('input', update);
+  update();
+
+  // Feature importance (Random Forest)
+  var feats = [
+    ['Average rating of the cast', 0.222],
+    ['Number of votes', 0.190],
+    ['Release year', 0.152],
+    ['Director\u2019s track record', 0.117],
+    ['Duration', 0.066],
+    ['Lead actor\u2019s track record', 0.056],
+    ['Third actor\u2019s track record', 0.045],
+    ['Second actor\u2019s track record', 0.043],
+    ['Documentary genre', 0.020],
+    ['Drama genre', 0.017]
+  ];
+  var box = document.getElementById('importance');
+  feats.forEach(function (f) {
+    var row = document.createElement('div'); row.className = 'bar-line';
+    var lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = f[0];
+    var tr = document.createElement('div'); tr.className = 'bar-track';
+    var fill = document.createElement('div'); fill.className = 'bar-fill';
+    fill.style.width = (f[1] / 0.25 * 100) + '%'; fill.style.background = 'var(--rf)';
+    tr.appendChild(fill);
+    var val = document.createElement('span'); val.className = 'val'; val.textContent = f[1].toFixed(3);
+    row.appendChild(lab); row.appendChild(tr); row.appendChild(val);
+    box.appendChild(row);
+  });
+})();
+</script>
+</body>
+</html>
